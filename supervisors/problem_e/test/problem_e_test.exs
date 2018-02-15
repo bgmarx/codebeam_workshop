@@ -35,10 +35,10 @@ defmodule ProblemETest do
   end
 
   test "shutdown: :brutal_kill kills Agents" do
-    {:ok, sup} = ProblemE.start_link([shutdown: :brutal_kill])
+    {:ok, sup} = ProblemE.start_link()
 
 
-    {:ok, agent} = ProblemE.start_child(sup, &Map.new/0)
+    {:ok, agent} = ProblemE.start_child(sup, &Map.new/0, shutdown: :brutal_kill)
     ref = Process.monitor(agent)
     Supervisor.stop(sup)
     assert_receive {:DOWN, ^ref, _, _, :killed}
@@ -65,7 +65,7 @@ defmodule ProblemETest do
 
   @tag :capture_log
   test "restart Agent on crash if [restart: :transient]" do
-    {:ok, sup} = ProblemE.start_link([restart: :transient])
+    {:ok, sup} = ProblemE.start_link()
 
     starter = self()
     init =
@@ -73,7 +73,7 @@ defmodule ProblemETest do
         send(starter, {:agent, self()})
         nil
       end
-    {:ok, agent1} = ProblemE.start_child(sup, init)
+    {:ok, agent1} = ProblemE.start_child(sup, init, restart: :transient)
 
     assert_receive {:agent, ^agent1}
 
@@ -82,11 +82,11 @@ defmodule ProblemETest do
     assert_receive {:agent, _}
   end
 
-  test "shutdown on any exit if [max_restarts: 0, restart: :permanent]" do
+  test "shutdown on any exit max_restarts: 0, restart: :permanent" do
     Process.flag(:trap_exit, true)
-    {:ok, sup} = ProblemE.start_link([max_restarts: 0, restart: :permanent])
+    {:ok, sup} = ProblemE.start_link(max_restarts: 0)
 
-    {:ok, agent} = ProblemE.start_child(sup, &Map.new/0)
+    {:ok, agent} = ProblemE.start_child(sup, &Map.new/0, restart: :permanent)
     Agent.stop(agent)
     assert_receive {:EXIT, ^sup, :shutdown}
   end
